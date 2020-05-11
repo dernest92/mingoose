@@ -15,14 +15,6 @@ const mingoose = {
           throw new Error(`${field} is required`);
         }
 
-        if (sourceItem[field] && this.fields[field].fk) {
-          builtItem[field] = {
-            fk: this.fields[field].fk,
-            _id: sourceItem[field],
-          };
-          continue;
-        }
-
         if (sourceItem[field]) {
           builtItem[field] = sourceItem[field];
         }
@@ -84,17 +76,30 @@ const mingoose = {
       }
       static populate(item, prop) {
         return new Promise((resolve, reject) => {
-          const collection = item[prop].fk;
+          const collection = schema.fields[prop].from;
           fs.readFile(`${filePath}/${collection}.json`, "utf-8").then(
             (itemsStr) => {
               const foreignItems = JSON.parse(itemsStr);
               const foreignItem = foreignItems.find(
-                (itm) => itm._id === item[prop]._id
+                (itm) => itm._id === item[prop]
               );
               item[prop] = foreignItem;
               resolve(item);
             }
           );
+        });
+      }
+
+      static getRelated(item, name) {
+        return new Promise((resolve, reject) => {
+          const { _id } = item;
+          const { from, field } = schema.fields._related[name];
+          fs.readFile(`${filePath}/${from}.json`, "utf-8").then((itemsStr) => {
+            const allItems = JSON.parse(itemsStr);
+            const relatedItems = allItems.filter((itm) => itm[field] === _id);
+
+            resolve(relatedItems);
+          });
         });
       }
     };

@@ -13,11 +13,15 @@ const userSchema = new mingoose.Schema({
     type: String,
     required: true,
   },
+  _related: {
+    posts: {
+      from: "Posts",
+      field: "owner",
+    },
+  },
 });
 
 const User = mingoose.model("Users", userSchema);
-
-console.log(User);
 
 async function test1() {
   const stagedUser = new User({
@@ -27,10 +31,8 @@ async function test1() {
   });
   const user = await stagedUser.save();
   const found = await User.findById(user._id);
-  console.log(found);
   found.name = "Eric got updated";
   const updatedUser = await User.updateById(found._id, found);
-  console.log(updatedUser);
 }
 
 // test1();
@@ -40,13 +42,10 @@ async function test2() {
     age: 27,
     email: "itslit@hi.org",
   });
-  console.log("New User: ", user);
 
   const found = await User.findById(user._id);
-  console.log("Found User: ", found);
   found.email = "floopydoo@email.net";
   const updated = await User.updateById(user._id, found);
-  console.log("Updated User: ", updated);
 }
 
 // test2();
@@ -56,8 +55,9 @@ const postSchema = new mingoose.Schema({
     required: true,
   },
   owner: {
+    type: "reference",
     required: true,
-    fk: "Users",
+    from: "Users",
   },
 });
 
@@ -69,17 +69,26 @@ async function test3() {
     email: "imakeposts@gmail.com",
   });
 
-  console.log(user);
-
   const post = await Post.create({
     title: "new post",
     owner: user._id,
   });
 
-  console.log(post);
+  await Post.create({
+    title: "another new post",
+    owner: user._id,
+  });
+
+  await Post.create({
+    title: "a third post by this guy",
+    owner: user._id,
+  });
 
   const populatedPost = await Post.populate(post, "owner");
   console.log(populatedPost);
+
+  const myPosts = await User.getRelated(user, "posts");
+  console.log(myPosts);
 }
 
 test3();
